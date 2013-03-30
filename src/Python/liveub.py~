@@ -1,0 +1,34 @@
+from gi.repository import Gtk
+
+class Handler:
+	def on_btn_burn_to_usb_clicked(self, button):	
+		print dialog.get_filename()
+		
+		
+class Filters:
+	def setFileFilter(self,dialog):
+		FileFilter = Gtk.FileFilter()
+		FileFilter.set_name("ISO Files")
+		FileFilter.add_pattern("*.iso")
+		dialog.add_filter(FileFilter)
+
+		FileFilter = Gtk.FileFilter()
+		FileFilter.set_name("All Files")
+		FileFilter.add_pattern("*")
+		dialog.add_filter(FileFilter)
+		
+builder = Gtk.Builder()
+builder.add_from_file("liveub.glade")
+builder.connect_signals(Handler())
+
+dialog = builder.get_object("fcb_image_path")
+filters = Filters()
+filters.setFileFilter(dialog)
+
+window = builder.get_object("window1")
+window.show_all()
+
+
+
+
+Gtk.main()
