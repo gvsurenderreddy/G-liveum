@@ -1,60 +1,75 @@
 #!/bin/bash
 
-ListAllDrives=`sudo  mount | grep /dev/sd'[a-z]' | cut -c6-8`; #List all mounted drives present on computer
+#ListAllDrives=`sudo  mount | grep /dev/sd'[a-z]' | cut -c6-8`; #List all mounted drives present on computer
+#echo $ListAllDrives;
+ListAllDrives=`sudo  ls /dev/sd*`;
+
+#echo $ListAllDrives;
 count=0
 for Drive in $ListAllDrives #for each through drives
 do
-	isUSB=`sudo readlink -f /sys/class/block/$Drive/device| grep usb | wc -l`; #from all the drives only usb will be listed
-	if [ $isUSB -gt 0 ] # if it is a usb then 1 is returned
-	then
-			count=`expr $count + 1`
-			echo "Found Drive: ${Drive}"
+  
+  DisplayDrives=`echo $Drive | grep /dev/sd'[a-z]$'`;
+ 
+  if [ ! -z "$DisplayDrives" ];
+  then
+	  isUSB=`sudo readlink -f /sys/class/block/$(basename $Drive)/device| grep usb | wc -l`; #from all the drives only usb will be listed
+	  if [ $isUSB -gt 0 ] # if it is a usb then 1 is returned
+	  then
+			  count=`expr $count + 1`
+			  echo "Found Drive: $(basename $Drive)"
+	  fi
 	fi
-	
 done
-if [ $count -eq 0 ] 
+
+if [ $count -eq 0 ]
 then
-	echo "ERROR - No usb drive mounted"
+	echo "ERROR - No usb drives found"
 	
 else
 	
 	echo -n "Enter the drive name:"
 	read DestinationUSB #Read USB 
+	if [ -z "$DestinationUSB" ];
+	then
+	  echo "No USB Drive Provided.....exiting program"
+	  exit
+	fi
 	isMounted=`mount | grep /dev/$DestinationUSB | wc -l`; #check if the USB is still mounted
 		
 	if [ $isMounted -gt 0 ]
 	then
+	  umount /dev/$DestinationUSB;
+	fi
 		
-		echo -n "Enter Live Image Source Path:"
-		read ImagePath #read image path
+	echo -n "Enter Live Image Source Path:"
+	read ImagePath #read image path
 			
-		if [ -f $ImagePath ] #check if path is vaild
+	if [ -f $ImagePath ] #check if path is vaild
+	then
+				
+		DIR="${ImagePath%/*}" #extract DIR name
+		cd ${DIR} # have to navigate
+		iso="${ImagePath##*/}" #extract file name
+		echo -n "WARNING - You will lose all the data in USB, Continue[y to continue]:"
+		read choice
+		if [ -z "$choice" ]
 		then
-				
-			DIR="${ImagePath%/*}" #extract DIR name
-			cd ${DIR} # have to navigate
-			iso="${ImagePath##*/}" #extract file name
-			echo -n "WARNING - You will lose all the data in USB, Continue[y to continue]:"
-			read choice
-				
-			if [ `echo $choice | tr "[:lower:]" "[:upper:]"` = 'Y' ]; 
-			then
+		  echo "Blank choice...exiting program"
+		fi 
+		if [ `echo $choice | tr "[:lower:]" "[:upper:]"` = 'Y' ]; 
+		then
 			
-				sudo  dd if=${iso} of=/dev/${DestinationUSB} bs=4M  # write image to USB
-					
-			else
-				
-				echo "program terminated by user"
-			fi
+			sudo  dd if=${iso} of=/dev/${DestinationUSB} bs=4M  # write image to USB
 					
 		else
-			
-			echo "Invalid Image Path"
 				
+			echo "program terminated by user"
 		fi
+					
 	else
-		
-		echo "ERROR - You have entered wrong USB drive or the USB is currently unmounted"
 			
+		echo "Invalid Image Path"
+				
 	fi
 fi
